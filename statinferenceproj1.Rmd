@@ -1,0 +1,124 @@
+---
+title: "Exponential distribution investigation"
+author: "Federico Calore"
+date: "24 Oct 2015"
+output: pdf_document
+---
+
+This document investigates the exponential distribution using R simulations, and compares it with the distribution of averages of 40 exponentials.
+
+## Exponential distribution density
+The exponential distribution can be simulated in R with **rexp(n, lambda)**.  
+This code generates a sample n = 1000 random exponential, and plots the frequency with the **hist()** function.
+```{r, eval=FALSE}
+randvar <- rexp(1000, 0.2) # generates 10000 random data points
+hist(randvar)              # plots the histogram of frequencies
+```
+
+Its density plot can be overlayed with the **curve()** function, passing the **dexp()** density expression.  
+Hereby the resulting plot combining the histogram of the simulation and the theoretical distribution:  
+  
+```{r, echo=FALSE, fig.height=5}
+randvar <- rexp(1000, 0.2)
+hist(randvar, breaks = 20, freq = FALSE, xlim = c(0,30), main = "Exp distribution with lambda = 0.2", xlab = "")
+curve(dexp(x, 0.2), from = 0, to = 30, add = TRUE, col = "red")
+```
+
+------
+
+\pagebreak
+
+## Mean and standard deviation
+The mean and standard deviation of the exponential distribution equal to 1/lambda (here 1/0.2 = 5); these are the theoretical values. We can calculate the sample mean and standard deviations from the generated data:
+```{r, collapse=TRUE}
+mean(randvar)
+sd(randvar)
+```
+
+The **Law of the Large Numbers** (LLN) says that the average of the samples limits to the population statistics.  
+In fact, thanks to the large n = 1000, the empirical values are quite close to the theoretical 5.
+
+We can prove the LLN with simulations of sampled data.
+The following charts shows how the cumulative mean and standard deviations of the samples tends to the theoretical value of the population distribution, as n grows larger:  
+
+```{r, echo=FALSE}
+par(mfrow=c(1,2))
+# cumulative mean
+means <- data.frame(
+  x = 1 : 1000,
+  y = (cumsum(rexp(1000, 0.2)) / (1 : 1000))
+  )
+plot(means, type = "l", main = "",
+     xlab = "sample size",
+     ylab = "Mean of iid exponential random variables")
+abline(h = 5, lty = 3, col = "red")
+
+# cumulative standard deviation
+rval <- rexp(1000, 0.2)
+sval <- NULL
+for (i in 1:1000) {sval[i] <- sd(rval[1:i])}
+deviation <- data.frame(x = 1 : 1000, y = sval)
+plot(deviation, type = "l", main = "",
+     xlab = "sample size",
+     ylab = "Stdev of iid exponential random variables")
+abline(h = 5, lty = 3, col = "red")
+```
+
+------
+
+\pagebreak
+
+## Distribution of averages
+Indipendent samples from an exponential distribution will have the same distribution as the original population; this is how we plotted the histogram on the first page. But average of iid will distrubute approximately normal.  
+The **Central Limit Theorem** (CLT) says that the distribution of averages of iid normalized variables tends to a standard normal distribution, as the sample size increases.  
+
+We can average samples of 3, 10, and 40 exponentials and compare their frequency histograms with n = 1000  samples.  
+The results are scaled and centered on the mean, and compared with a standard normal distribution ***N(0,1)*** (overlayed as a curve on the histograms).
+
+``` {r, echo=FALSE}
+cfunc <- function(x, n) sqrt(n) * (mean(x) - 5) / 5
+# generate data and averages with different sample sizes
+data <- data.frame(x = c(
+  apply(matrix(rexp(3 * 1000, 0.2), 1000), 1, cfunc, 3),
+  apply(matrix(rexp(10 * 1000, 0.2), 1000), 1, cfunc, 10),
+  apply(matrix(rexp(40 * 1000, 0.2), 1000), 1, cfunc, 40)
+),
+size = factor(rep(c(3, 10, 40), rep(1000, 3)))
+)
+# plot results into a 1 x 3 grid for comparison
+par(mfrow = c(1,3))
+hist(data[data$size == 3, 1], breaks = 10, freq = FALSE,
+     xlim = c(-3, 3), ylim = c(0, 0.5), main = "Average of 3", xlab = "",
+     ylab = paste(
+       "mean: ", round(mean(data[data$size == 3, 1]), digits = 3),
+       "  ",
+       "sd: ", round(sd(data[data$size == 3, 1]), digits = 3),
+       sep = ""))
+curve(dnorm(x), from = -3, to = 3, add = TRUE, col = "red")
+abline(v = mean(data[data$size == 3, 1]), lty = "dotted", col = "red")
+
+hist(data[data$size == 10, 1], breaks = 10, freq = FALSE,
+     xlim = c(-3, 3), ylim = c(0, 0.5), main = "Average of 10", xlab = "",
+          ylab = paste(
+       "mean: ", round(mean(data[data$size == 10, 1]), digits = 3),
+       "  ",
+       "sd: ", round(sd(data[data$size == 10, 1]), digits = 3),
+       sep = ""))
+curve(dnorm(x), from = -3, to = 3, add = TRUE, col = "blue")
+abline(v = mean(data[data$size == 10, 1]), lty = "dotted", col = "blue")
+
+hist(data[data$size == 40, 1], breaks = 10, freq = FALSE,
+     xlim = c(-3, 3), ylim = c(0, 0.5),
+     main = "Average of 40", xlab = "",
+     ylab = paste(
+       "mean: ", round(mean(data[data$size == 40, 1]), digits = 3),
+       "  ",
+       "sd: ", round(sd(data[data$size == 40, 1]), digits = 3),
+       sep = ""))
+curve(dnorm(x), from = -3, to = 3, add = TRUE, col = "green")
+abline(v = mean(data[data$size == 40, 1]), lty = "dotted", col = "green")
+```
+
+Already with the average of three observations, the resulting distribution is not exponential anymore.  
+It appears clearly that the larger the sample that we average, the less skewed and the more normal the distribution of averages appears.  
+Their mean and standard deviations are very close to a standard normal N(0, 1), thanks to the LLN seen above.

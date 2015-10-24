@@ -1,0 +1,120 @@
+---
+title: "ToothGrowth dataset analysis"
+author: "Federico Calore"
+date: "24 Oct 2015"
+output: pdf_document
+---
+In this document describes some exploratory data analyssi on the ToothGrowth dataset provided with the base R distribution, and checks relevant hypotheses based on the data.
+
+From the [description](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html) in the dataset package:  
+
+> **The Effect of Vitamin C on Tooth Growth in Guinea Pigs**  
+> The response is the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, (orange juice or ascorbic acid (a form of vitamin C and coded as VC).
+
+Dataset columns:  
+
+> variable | type    | description
+> -------- | ------- | -----------
+> $ len    | numeric | Tooth length
+> $ supp   | factor  | Supplement type (VC or OJ).
+> $ dose   | numeric | Dose in milligrams/day
+
+## Initial data exploration
+
+Load the ToothGrowth data from R datasets and perform a quick summary:
+```{r}
+data("ToothGrowth")
+str(ToothGrowth)
+summary(ToothGrowth)
+```
+-------
+
+\pagebreak
+
+The dataset contains results of 10 samples for each combination of *supplement type* and *dose*.
+```{r, echo=FALSE}
+cat("Count of observations:")
+table(ToothGrowth$supp, ToothGrowth$dose)
+```
+
+We can quickly check the mean of the tooth growth by *supplement type* and *dose*:
+```{r, comment=""}
+# mean of length by supplement type
+tapply(ToothGrowth$len, INDEX = ToothGrowth$supp, FUN = mean)
+
+# mean of length by dose
+tapply(ToothGrowth$len, INDEX = ToothGrowth$dose, FUN = mean)
+
+# mean of length by combinations of supplement and dose
+xtabs(len/10 ~ supp + dose, data = ToothGrowth)
+```
+
+We can also explore the results with some boxplots to show the relationships between the factors and the growth results:  
+
+```{r, echo=FALSE}
+par(mfrow = c(1,2))
+boxplot(len ~ supp, data = ToothGrowth, ylab = "length by supplement type")
+boxplot(len ~ dose, data = ToothGrowth, ylab = "length by dose")
+```
+
+-------
+
+\pagebreak
+
+## Hypothesis testing
+
+### Hypothesis testing on supplement type
+Looking at the boxplot on the left, it looks like the ascorbic acid is less effective than the orange juice.
+We want to check if we have enough statistical evidence to support this. We can formally define the alternatives as follows:
+
+> $H_0:   \mu_{OJ} = \mu_{VC}$  
+> $H_1:   \mu_{OJ} \neq \mu_{VC}$  
+
+We will use a two sided t-test to verify the interval of confidence in order to reject the *null* hypothesis H~0~.  
+We use unpaired observations, since the guinea pigs in one group didn't have anything to do with the ones in the other group, and assume unequal variances.
+
+```{r, collapse=TRUE}
+t <- t.test(len ~ supp, data = ToothGrowth)
+t$conf[1:2]
+t$p.value
+```
+
+The *p-value* is greater than 0.05 and the confidence interval contains zero, therefore we we don't have enough statistical evidence to to reject the *null* hypothesis with 95% confidence.
+
+If we chose a relaxed 90% interval for the test, or we used a one-sided hypothesis (*greater than*), the interval would not include zero, and we would reject the *null* hypothesis in favor of the alternative:
+
+```{r}
+ # 90% confidence interval
+t.test(len ~ supp, data = ToothGrowth, conf.level = 0.90)$conf[1:2]
+
+# one sided alternative hypothesis
+t.test(len ~ supp, data = ToothGrowth, alternative = "greater")$conf[1:2]
+```
+
+### Hypothesis testing on doses
+We have three levels for the doses, so we will have to compare them in pairs. The *null* hypothesis will assume an equal mean across levels, and the alternative will be a difference.
+
+As in the previous example, we will use two sided t-tests with unpaired observations and unequal variances.
+The result is formatted in a matrix to improve readability.
+
+```{r, echo=FALSE}
+t1 <- with(ToothGrowth, t.test(len[dose == 0.5], len[dose == 1])) # .5 vs 1
+t2 <- with(ToothGrowth, t.test(len[dose == 0.5], len[dose == 2])) # .5 vs 2
+t3 <- with(ToothGrowth, t.test(len[dose == 1], len[dose == 2]))   #  1 vs 2
+
+data.frame(
+  comparisons = c(".5 vs 1", ".5 vs 2", " 1 vs 2"),
+  interval = rbind(
+    round(t1$conf[1:2], digits = 3),
+    round(t2$conf[1:2], digits = 3),
+    round(t3$conf[1:2], digits = 3)
+  ),
+  p.values = rbind(
+    round(t1$p.value, digits = 5),
+    round(t2$p.value, digits = 5),
+    round(t3$p.value, digits = 5)
+  )
+)
+```
+
+All three intervals are entirely below zero, so we would reject the *null* hypothesis in favor of the alternative in all cases. That implies *0.5 > 1 > 2*, or in other words, the more vitamin C, the stronger the effect.
