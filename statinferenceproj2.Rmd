@@ -4,14 +4,14 @@ author: "Federico Calore"
 date: "24 Oct 2015"
 output: pdf_document
 ---
-In this document describes some exploratory data analyssi on the ToothGrowth dataset provided with the base R distribution, and checks relevant hypotheses based on the data.
+This document performs some exploratory data analysis on the ToothGrowth dataset provided with the base R package, and checks some relevant hypotheses based on the data.
 
 From the [description](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html) in the dataset package:  
 
 > **The Effect of Vitamin C on Tooth Growth in Guinea Pigs**  
 > The response is the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, (orange juice or ascorbic acid (a form of vitamin C and coded as VC).
 
-Dataset columns:  
+Dataset columns:
 
 > variable | type    | description
 > -------- | ------- | -----------
@@ -37,7 +37,7 @@ cat("Count of observations:")
 table(ToothGrowth$supp, ToothGrowth$dose)
 ```
 
-We can quickly check the mean of the tooth growth by *supplement type* and *dose*:
+We can quickly check the mean of the tooth growth subsetted by *supplement type* and *dose*:
 ```{r, comment=""}
 # mean of length by supplement type
 tapply(ToothGrowth$len, INDEX = ToothGrowth$supp, FUN = mean)
@@ -49,7 +49,7 @@ tapply(ToothGrowth$len, INDEX = ToothGrowth$dose, FUN = mean)
 xtabs(len/10 ~ supp + dose, data = ToothGrowth)
 ```
 
-We can also explore the results with some boxplots to show the relationships between the factors and the growth results:  
+We can also explore the results with some boxplots to highlight differences in distribution of the tooth length variable by the *supp* and *dose* factors:  
 
 ```{r, echo=FALSE}
 par(mfrow = c(1,2))
@@ -79,9 +79,9 @@ t$conf[1:2]
 t$p.value
 ```
 
-The *p-value* is greater than 0.05 and the confidence interval contains zero, therefore we we don't have enough statistical evidence to to reject the *null* hypothesis with 95% confidence.
+The *p-value* is greater than 0.05 and the confidence interval contains zero, therefore we don't have enough statistical evidence to reject the *null* hypothesis with 95% confidence.
 
-If we chose a relaxed 90% interval for the test, or we used a one-sided hypothesis (*greater than*), the interval would not include zero, and we would reject the *null* hypothesis in favor of the alternative:
+If we chose a relaxed *90% interval* for the test, or we used a *one-sided* hypothesis (*greater than*), the interval would not include zero, and we would reject the *null* hypothesis in favor of the alternative:
 
 ```{r}
  # 90% confidence interval
@@ -92,7 +92,7 @@ t.test(len ~ supp, data = ToothGrowth, alternative = "greater")$conf[1:2]
 ```
 
 ### Hypothesis testing on doses
-We have three levels for the doses, so we will have to compare them in pairs. The *null* hypothesis will assume an equal mean across levels, and the alternative will be a difference.
+We have three levels for the doses, so we will have to compare them in pairs. The *null* hypothesis will assume an equal mean across levels, and the alternative will assume there is a difference.
 
 As in the previous example, we will use two sided t-tests with unpaired observations and unequal variances.
 The result is formatted in a matrix to improve readability.
@@ -117,4 +117,4 @@ data.frame(
 )
 ```
 
-All three intervals are entirely below zero, so we would reject the *null* hypothesis in favor of the alternative in all cases. That implies *0.5 > 1 > 2*, or in other words, the more vitamin C, the stronger the effect.
+All three intervals are entirely below zero, so we would reject the *null* hypothesis in favor of the alternative in all cases. That implies *0.5 < 1 < 2*, or in other words, the more vitamin C, the stronger the effect.
